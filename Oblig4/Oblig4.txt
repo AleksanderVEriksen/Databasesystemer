@@ -1,0 +1,169 @@
+¨¨Oppgave 1
+
+
+a) 
+Utskrift med prosjektnr og -navn for aktive prosjekter for firmaet "Sen & Sur", uten A/S
+
+SELECT prosjektnr, prosjektnavn, firmanavn ,statuskode
+FROM Prosjekt
+WHERE firmanavn = "Sen & Sur"
+AND statuskode = "A"
+
+b)
+Lag en utskrift over alle aktivitetene som har prosjekter som enten har statuskode «F» eller har statuskode «T» med et beløp over 900000.
+Utskriften skal være sortert på prosjektnr og aktivitetsnr innenfor prosjektet, og skal ha med prosjektnr, prosjektnavn, aktivitetnr, aktivitetnavn og startdato.
+
+SELECT prosjekt.prosjektnr,prosjektnavn, aktivitetnr, aktivitetnavn, startdato,avtaltbeløp,statuskode
+FROM prosjekt
+JOIN aktivitet
+ON prosjekt.prosjektnr = aktivitet.prosjektnr
+WHERE statuskode = "F" 
+OR (statuskode = "T" AND avtaltbeløp > 900000)
+ORDER BY prosjekt.prosjektnr,aktivitetnr
+
+
+
+c)
+Lag en utskrift med alle opplysninger om prosjekter som ikke har noen aktiviteter.
+SELECT *
+FROM prosjekt
+JOIN aktivitet
+ON prosjekt.prosjektnr = aktivitet.prosjektnr
+WHERE startdato > current_date() 
+OR sluttdato < current_date()
+
+
+d)
+Lag en utskrift med prosjektnr, prosjektnavn og samlet timetall for aktive prosjekter som samlet har mer enn 1000 timer 
+(dvs. for hele prosjektet, ikke for en enkelt aktivitet).
+SELECT prosjekt.prosjektnr, prosjektnavn, SUM(timer) as Total_Timer, statuskode
+FROM PROSJEKT
+JOIN AKTIVITET
+ON PROSJEKT.prosjektnr = AKTIVITET.prosjektnr
+WHERE statuskode = "A"                 
+GROUP BY prosjektnr
+HAVING SUM(timer) > 1000
+
+e)
+For hvert prosjekt skal det i tillegg til prosjektnr og prosjektnavn skrives ut prosjektetsstartdato 
+(dvs. dato da den tidligste aktiviteten for prosjektet startet –det trenger ikke å være aktivitet nummer 1 for dette prosjektet), 
+og tilsvarende prosjektets sluttdato.
+
+SELECT prosjekt.prosjektnr, prosjektnavn, MIN(startdato) as Tidligst_dato, sluttdato
+FROM PROSJEKT
+JOIN AKTIVITET
+ON PROSJEKT.prosjektnr = AKTIVITET.prosjektnr
+Group by prosjektnr
+
+
+
+f)
+enten:Som over, men i stedet forå skrive utprosjektets startdato skal vi skrive ut navnet på den aktiviteten som startet først hhv. sluttet sist. 
+(Det er altså ikke nødvendigvis aktivitetene som har lavest hhv. høyest nummer).
+
+eller:Finn gjennomsnittlig timelønn for hvert prosjekt, dvs. avtalt beløp dividert med sum timer for dette prosjektet.
+
+SELECT prosjektnr,prosjektnavn,(sum(avtaltbeløp)/SUM(timer)) AS Avg_timelonn
+FROM PROSJEKT
+JOIN AKTIVITET
+ON PROSJEKT.prosjektnr = AKTIVITET.prosjektnr
+Group by prosjektnr
+
+g)
+Lag en create table-setning for å definere tabellen aktivitet. 
+I samme setning eller (helst) i en egen setning skal du definere opp referanseintegritet mellom aktivitet og prosjekt, med cascade som endringsregel og restrict som slettingsregel.
+
+Create table aktivitet(
+prosjektnr int not null,
+aktivitetnr int,
+aktivitetnavn varchar(50),
+startdato date,
+sluttdato date,
+virkeligsluttdato date,
+timer int,
+Constraint PK_aktivitet PRIMARY KEY(prosjektnr, aktivitetnr)
+);
+
+ALter table aktivitet
+Add foreign key(prosjektnr) REFERENCES prosjekt(prosjektnr)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+
+h)
+Legg inn en ny rad i prosjekt, med prosjektnr 992121, prosjektnavn ‘Skifte elektrisk anlegg’, firma911, Rask & blidA/S, statuskode T. Avtalt beløp skal ikke fylles inn.
+
+
+Insert into prosjekt(prosjektnr,prosjektnavn,firmanr,firmanavn,statuskode) 
+Value(992212,"Skifte elektrisk anlegg",911,"Rask & blid A/S", "T")
+
+
+
+
+
+
+Oppgave 2  
+
+
+a)
+Analyser tabellen Prosjekt og konkluder med hvilken normalform denne er på.
+
+Prosjektnr		Prosjektnavn	Avtaltbeløp		Firmanr		Firmanavn		Statuskode
+
+1NF - All data atomisk --> Yes
+2NF - Deler av nøkkelen skal ikke kunne determinere ikke-nøkkel-attributter --> Yes
+3NF - ikke-kandidatnøkkelen type her determinerer annen kolonnen --> Firmanr determinerer firmanavn
+
+Denne tabellen har et brudd på normalform 3NF, så den må være på normalform 2NF
+
+b)
+Analyser tilsvarende tabellen Aktivitet, først med forutsetning om at kolonnen virkeligsluttdato gjelder hele prosjektet, deretter at virkeligsluttdato gjelder hver aktivitet. (Det siste den er forutsetningen du bruker i resten avoppgaven).
+
+Case 1:
+
+Prosjektnr		Aktivitetnr		Aktivitetnavn	Startdato		Sluttdato		Virkeligsluttdato(Hele prosjektet)	Timer
+1		1		Gjøre noe		12.01.2020	12.2.2020		20.4.2020			180
+
+1NF - All data atomisk --> Yes
+2NF - Deler av nøkkelen skal ikke kunne determinere ikke-nøkkel-attributter --> Prosjektnr determinerer virkeligsluttdato
+virekligsluttdato blir static og må i en egen tabell for å unngå redundans.
+
+Denne tabellen er på 1NF.
+
+
+Case 2:
+
+Prosjektnr		Aktivitetnr		Aktivitetnavn	Startdato		Sluttdato		Virkeligsluttdato(Per aktivitet)	Timer
+1		1		Noe		15.2.2020		09.3.2020		12.3.2020			70
+
+1NF - All data atomisk --> Yes
+2NF - Deler av nøkkelen skal ikke kunne determinere ikke-nøkkel-attributter --> Yes
+3NF - ikke-kandidatnøkkelen type her skal ikke determinerer annen kolonnen --> Yes
+Boys-codds - ikke-nøkkelen skal ikke kunne determinere en del av primærnøkkelen --> Yes
+
+Denne tabellen er på boyce-codds normalform.
+
+
+Oppgave 4:
+
+Forklar hva et utsnitt er, hva det brukes til, hvordan det utføres/kjøres og hva det vil si at et utsnitt er oppdaterbart.
+
+
+Et utsnitt eller views er en måte å få en slags virtuell oversikt over hva som finnes i databasen man har laget/bruker.
+Det brukes blant annet til som en slags sikkerhetsmekanisme, der du f.eks definerer en tabell som kan bare brukes av personer der relevante rader er tilgjengelig for de. 
+Kan også slippe komplisitet ved å lage en tabell som joiner andre tabeller, som du så kan bruke andre steder istede for å skrive de igjen.
+Den lages ved å skrive 'create view navnetpåviewet AS 'select setning her'. 
+Vi kan se det på som en oppretelse av en spørring/tabell der man kan kalle på den dersom man ønsker å se på den igjen. Kaller på den på samme måte som en vanlig select setning der view navnet skal stå etter FROM.
+
+For at et utnsitt/view kan oppdateres må det godkjenne visse kriterier. Den må ikke være kobla mot andre tabeller. Den må ikke ha GROUP BY,HAVING eller DISTINCT når viewet ble laget. Den må minst ha med Primary keyen i viewet.
+Kan dermed bruke 
+UPDATE <view_name > 
+SET<column1>=<value1>,<column2>=<value2>,.....
+WHERE <condition>;
+
+
+
+
+
+
